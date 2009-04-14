@@ -4,10 +4,24 @@ require 'test/unit'
 
 class TuringMachine
   class ProgramTest < Test::Unit::TestCase
-    def test_program_contains_states
+    def test_program_contains_state_hash
       program = Program.new
-      s = program << State.new
-      assert_equal [s], program.states
+      s = program[:state] = State.new
+      assert_equal({:state => s}, program.states)
+    end
+
+    def test_program_max_iterations
+      p = Program.new
+      p[:start] = State.new([
+          Rule.new :if => 'a', :move => 1
+        ])
+      tape = Tape.new %w{a a a a a a}
+      head = tape << Head.new
+      iteration = 0
+      p.run(head, 3) do
+        iteration += 1
+      end
+      assert_equal 3, iteration
     end
 
     def test_step_uses_rules_to_move_the_head
@@ -15,11 +29,11 @@ class TuringMachine
       state = State.new
       state << Rule.new(:if => 'a', :move => 1)
       #state << Rule.new(:if => nil, :move => 1)
-      program << state
+      program[:start] = state
 
       tape = Tape.new %w{a b c}
       head = tape << Head.new
-      head.state = program.states[0]
+      head.state = program.states[:start]
 
       assert_equal 0, head.position
       assert_equal 'a', head.read
@@ -34,19 +48,18 @@ class TuringMachine
     def test_step_changes_states
       program = Program.new
 
-      back = State.new
-      back << Rule.new(:if => 'a', :move => -1)
+      forth = (program[:forth] = State.new [
+        Rule.new(:if => 'a', :move => 1),
+        Rule.new(:if => nil, :move => -1, :go => :back)
+      ])
 
-      forth = State.new
-      forth << Rule.new(:if => 'a', :move => 1)
-      forth << Rule.new(:if => nil, :move => -1, :go => back)
-      
-      program << forth
-      program << back
+      back = (program[:back] = State.new [
+        Rule.new(:if => 'a', :move => -1)
+      ])
 
       tape = Tape.new %w{a a}
       head = tape << Head.new
-      head.state = program.states[0]
+      head.state = program.start_state
 
       assert_equal 0, head.position
       assert_equal 'a', head.read
@@ -75,18 +88,24 @@ class TuringMachine
       assert_equal nil, program.step(head)
     end
 
+    def test_first_state_defined_is_starting
+      program = Program.new
+      start = State.new []
+      program[:forth] = start
+      assert_equal start, program.start_state
+    end
+
     def test_run
       program = Program.new
 
-      back = State.new
-      back << Rule.new(:if => 'a', :move => -1)
-
-      forth = State.new
-      forth << Rule.new(:if => 'a', :move => 1)
-      forth << Rule.new(:if => nil, :move => -1, :go => back)
-
-      program << forth
-      program << back
+      program[:forth] = State.new [
+        Rule.new(:if => 'a', :move => 1),
+        Rule.new(:if => nil, :move => -1, :go => :back)
+      ]
+      
+      program[:back] = State.new [
+        Rule.new(:if => 'a', :move => -1)
+      ]      
 
       tape = Tape.new %w{a a}
       head = tape << Head.new
@@ -100,15 +119,14 @@ class TuringMachine
 
       program = Program.new
 
-      back = State.new
-      back << Rule.new(:if => 'a', :move => -1)
+      program[:forth] = State.new [
+        Rule.new(:if => 'a', :move => 1),
+        Rule.new(:if => nil, :move => -1, :go => :back)
+      ]
 
-      forth = State.new
-      forth << Rule.new(:if => 'a', :move => 1)
-      forth << Rule.new(:if => nil, :move => -1, :go => back)
-
-      program << forth
-      program << back
+      program[:back] = State.new [
+        Rule.new(:if => 'a', :move => -1)
+      ]   
 
       tape = Tape.new %w{a a}
       head = tape << Head.new

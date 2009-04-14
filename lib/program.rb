@@ -1,36 +1,52 @@
 
 class TuringMachine
   class Program
-    attr_accessor :states
+    attr_accessor :states, :start_state
 
-    def initialize states = []
-      @states = []
+    def initialize states = nil
+      @states = nil
       @state = nil
       self.states = states
     end
 
-    def states= states
-      states.each { |s| self << s }
+    def []= k, v
+      unless @states
+        @start_state = v
+        @states = {}
+      end
+      @states[k] = v
+      v
     end
 
-    def << state
-      @states << state
-      state
+    def [] k
+      @states[k]
     end
 
-    def run head, &block
-      head.state = states[0]
-      if block_given?
-        run_with_block head, &block
-      else
-        while step(head); end
-      end      
+
+    def run head, max_iterations = nil, &block
+      unless head.state = @start_state
+        raise 'No start state given.'
+      end
+      iteration = 0;
+      
+      while step(head)
+        if block
+          block.call()
+        end
+        if max_iterations
+          iteration += 1;
+          if iteration >= max_iterations
+            return head.state
+          end
+        end
+      end
+      nil
     end
 
     def step head
       head.state.rules.each { |rule|
         if rule.condition_satisfied?(head.read)
-          rule.apply(head)
+          rule.apply(head, self)
           return rule
         end
       }
