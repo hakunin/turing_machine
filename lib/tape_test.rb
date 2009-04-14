@@ -30,5 +30,17 @@ class TuringMachine
       assert_equal nil, Tape.new(%w{a b c}).value_at(-1)
       assert_equal nil, Tape.new(%w{a b c}).value_at(3)
     end
+
+    def test_tape_preserves_order_by_keys
+      tape = Tape.new
+      tape.set_value_at(2, '2')
+      tape.set_value_at(1, '1')
+      tape.set_value_at(0, '0')
+      tape.set_value_at(-1, '-1')
+      tape.set_value_at(3, '3')
+
+
+      assert_equal %w{-1 0 1 2 3}, tape.values
+    end
   end
 end
