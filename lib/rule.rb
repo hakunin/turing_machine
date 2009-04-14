@@ -22,13 +22,13 @@ class TuringMachine
       @switch_state = hash[:go]
     end
 
-    def apply head
+    def apply head, program
+      if @put_set
+        head.write @put
+      end
       command.call head
       if switch_state
-        head.state = switch_state
-      end
-      if @put_set
-        head.write = @put
+        head.state = program[switch_state]
       end
     end
 
